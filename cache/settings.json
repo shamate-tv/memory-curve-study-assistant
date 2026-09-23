@@ -1,0 +1,10 @@
+{
+  "dark_mode": false,
+  "daily_new_limit": 20,
+  "daily_review_limit": 100,
+  "reminder_startup": true,
+  "reminder_daily": true,
+  "reminder_time": "19:00",
+  "use_windows_toast": true,
+  "compat_mode": false
+}
