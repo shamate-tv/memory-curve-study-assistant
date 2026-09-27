@@ -27,7 +27,7 @@ RATING_NAMES = {
     scheduler.RATING_KNOWN: "记住",
 }
 
-APP_VERSION = "v1.1.1"
+APP_VERSION = "v1.1.2"
 
 
 class ReviewApp(tk.Tk):
@@ -189,6 +189,9 @@ class ReviewApp(tk.Tk):
         wrap = tk.Frame(self.review_tab, bg="#ffffff")
         wrap.pack(fill="both", expand=True, padx=20, pady=18)
 
+        footer = tk.Frame(wrap, bg="#ffffff")
+        footer.pack(side="bottom", fill="x")
+
         top = tk.Frame(wrap, bg="#ffffff")
         top.pack(fill="x")
 
@@ -212,6 +215,54 @@ class ReviewApp(tk.Tk):
             value=0,
         )
         self.progress_bar.pack(side="right", fill="x", expand=True, padx=(12, 0))
+
+        review_filter_row = tk.Frame(wrap, bg="#ffffff")
+        review_filter_row.pack(fill="x", pady=(8, 0))
+
+        tk.Label(
+            review_filter_row,
+            text="复习范围：",
+            bg="#ffffff",
+            fg="#475569",
+            font=("Microsoft YaHei", 10),
+        ).pack(side="left")
+
+        self.review_subject_filter = ttk.Combobox(
+            review_filter_row,
+            values=["全部"] + SUBJECTS,
+            state="readonly",
+            width=8,
+        )
+        self.review_subject_filter.set("全部")
+        self.review_subject_filter.pack(side="left", padx=(0, 12))
+        self.review_subject_filter.bind("<<ComboboxSelected>>", lambda event: self.refresh_due())
+
+        tk.Label(
+            review_filter_row,
+            text="教材：",
+            bg="#ffffff",
+            fg="#475569",
+            font=("Microsoft YaHei", 10),
+        ).pack(side="left")
+
+        self.review_book_filter = ttk.Combobox(
+            review_filter_row,
+            values=["全部"] + BOOKS,
+            state="readonly",
+            width=8,
+        )
+        self.review_book_filter.set("全部")
+        self.review_book_filter.pack(side="left")
+        self.review_book_filter.bind("<<ComboboxSelected>>", lambda event: self.refresh_due())
+
+        self.review_filter_label = tk.Label(
+            review_filter_row,
+            text="当前：全部",
+            bg="#ffffff",
+            fg="#94a3b8",
+            font=("Microsoft YaHei", 10),
+        )
+        self.review_filter_label.pack(side="right")
 
         self.review_progress = tk.Label(
             top,
@@ -283,10 +334,10 @@ class ReviewApp(tk.Tk):
             bg="#ecfdf5",
             fg="#15803d",
             font=("Microsoft YaHei", 10, "bold"),
-        ).pack(anchor="w", padx=14, pady=(12, 4))
+        ).pack(anchor="w", padx=14, pady=(8, 2))
         self.answer_text = tk.Text(
             self.answer_frame,
-            height=6,
+            height=5,
             wrap="word",
             bd=0,
             bg="#ecfdf5",
@@ -298,8 +349,9 @@ class ReviewApp(tk.Tk):
         )
         self.answer_text.pack(fill="x")
 
-        button_row = tk.Frame(wrap, bg="#ffffff")
-        button_row.pack(fill="x", pady=(14, 0))
+        button_row = tk.Frame(footer, bg="#ffffff")
+        button_row.pack(fill="x", pady=(0, 8))
+        self.review_button_row = button_row
 
         self.show_answer_btn = tk.Button(
             button_row,
@@ -332,8 +384,8 @@ class ReviewApp(tk.Tk):
         )
         self.skip_btn.pack(side="left", padx=(10, 0))
 
-        self.rating_frame = tk.Frame(wrap, bg="#ffffff")
-        self.rating_frame.pack(fill="x", pady=(14, 0))
+        self.rating_frame = tk.Frame(footer, bg="#ffffff")
+        self.rating_frame.pack(fill="x")
 
         self.rate_buttons = {}
         rating_items = [
@@ -360,16 +412,6 @@ class ReviewApp(tk.Tk):
             button.pack(side="left", padx=(0, 10))
             self.rate_buttons[rating] = button
 
-        tip = tk.Label(
-            wrap,
-            text="规则：忘记 1 天后复习；模糊间隔延长到 1.6 倍；记住间隔延长到 2.2 倍，最长 180 天。",
-            bg="#ffffff",
-            fg="#94a3b8",
-            font=("Microsoft YaHei", 10),
-            anchor="w",
-        )
-        tip.pack(fill="x", pady=(16, 0))
-
     def _set_text(self, widget, text):
         widget.configure(state="normal")
         widget.delete("1.0", "end")
@@ -380,14 +422,36 @@ class ReviewApp(tk.Tk):
         for button in self.rate_buttons.values():
             button.configure(state=state)
 
+    def _review_scope_cards(self):
+        """根据复习页面的科目/教材筛选返回卡片。"""
+        subject = self.review_subject_filter.get() if hasattr(self, "review_subject_filter") else "全部"
+        book = self.review_book_filter.get() if hasattr(self, "review_book_filter") else "全部"
+        result = []
+        for card in self.cards:
+            if subject != "全部" and card.get("subject") != subject:
+                continue
+            if book != "全部" and card.get("book") != book:
+                continue
+            result.append(card)
+        return result
+
     def refresh_due(self):
         self.daily_stats = storage.load_daily_stats()
         self.current_due = scheduler.select_daily_cards(
-            self.cards,
+            self._review_scope_cards(),
             daily_new_limit=self.daily_new_limit,
             daily_review_limit=self.daily_review_limit,
             daily_stats=self.daily_stats,
         )
+        if hasattr(self, "review_filter_label"):
+            subject = self.review_subject_filter.get()
+            book = self.review_book_filter.get()
+            parts = []
+            if subject != "全部":
+                parts.append(subject)
+            if book != "全部":
+                parts.append(book)
+            self.review_filter_label.configure(text="当前：" + (" · ".join(parts) if parts else "全部"))
         self.current_index = 0
         self.answer_visible = False
         self.load_current_card()
@@ -399,8 +463,12 @@ class ReviewApp(tk.Tk):
     def load_current_card(self):
         if not self.current_due:
             self.current_card = None
-            self.review_meta.configure(text="今日没有待复习卡片，去“卡片管理”里添加或等待下次复习。")
-            self._set_text(self.question_text, "今天的复习任务已完成，明天继续续火花。")
+            if scheduler.get_due_cards(self.cards):
+                self.review_meta.configure(text="当前筛选下没有待复习卡片，可以切换复习范围或选择“全部”。")
+                self._set_text(self.question_text, "当前筛选下没有待复习卡片。")
+            else:
+                self.review_meta.configure(text="今日没有待复习卡片，去“卡片管理”里添加或等待下次复习。")
+                self._set_text(self.question_text, "今天的复习任务已完成，明天继续续火花。")
             self._set_text(self.answer_text, "")
             self.answer_frame.pack_forget()
             self.show_answer_btn.configure(state="disabled")
@@ -430,7 +498,7 @@ class ReviewApp(tk.Tk):
         if not self.current_card:
             return
         self._set_text(self.answer_text, self.current_card.get("answer", ""))
-        self.answer_frame.pack(fill="x", pady=(0, 4))
+        self.answer_frame.pack(fill="x", pady=(0, 8))
         self.answer_visible = True
         self.show_answer_btn.configure(state="disabled")
         self._set_rating_buttons_state("normal")
@@ -539,12 +607,12 @@ class ReviewApp(tk.Tk):
             insertbackground="#0f172a",
         )
         search_entry.pack(side="left", padx=(6, 10))
-        search_entry.bind("<Return>", lambda event: self.refresh_tree())
+        search_entry.bind("<Return>", lambda event: self.apply_manage_filters())
 
         tk.Button(
             filter_row,
             text="筛选",
-            command=self.refresh_tree,
+            command=self.apply_manage_filters,
             bg="#2563eb",
             fg="#ffffff",
             activebackground="#1d4ed8",
@@ -642,11 +710,20 @@ class ReviewApp(tk.Tk):
                 cursor="hand2",
             ).pack(side="left", padx=(0, 8))
 
+    def apply_manage_filters(self):
+        """把卡片管理的科目/教材筛选同步到复习页面。"""
+        if hasattr(self, "review_subject_filter"):
+            self.review_subject_filter.set(self.filter_subject.get())
+        if hasattr(self, "review_book_filter"):
+            self.review_book_filter.set(self.filter_book.get())
+        self.refresh_tree()
+        self.refresh_due()
+
     def reset_filters(self):
         self.filter_subject.set("全部")
         self.filter_book.set("全部")
         self.search_var.set("")
-        self.refresh_tree()
+        self.apply_manage_filters()
 
     def _filtered_cards(self):
         subject = self.filter_subject.get()
@@ -1314,7 +1391,7 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
 
         tk.Label(
             wrap,
-            text="提示：清理缓存后，学习记录会恢复为初始状态，适合重新开始复习计划。",
+            text="提示：所有学习数据都保存在 cache 文件夹，清除用户数据后会恢复初始状态。",
             bg="#ffffff",
             fg="#94a3b8",
             font=("Microsoft YaHei", 10),
@@ -1347,10 +1424,12 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
 它把高中必修一、二的知识点做成一张张“问题—答案”卡片，并根据你的记忆情况自动安排下一次复习时间。
 
 二、怎么使用？
-1. 在“今日复习”里看问题，先自己想答案；
-2. 点击“显示答案”；
-3. 根据实际情况选择“忘记”“模糊”或“记住”；
-4. 程序会自动计算下次复习时间。
+1. 可以在“卡片管理”里按科目、教材筛选，再进入“今日复习”；
+2. 也可以在“今日复习”顶部直接选择“复习范围”和“教材”；
+3. 在“今日复习”里看问题，先自己想答案；
+4. 点击“显示答案”；
+5. 根据实际情况选择“忘记”“模糊”或“记住”；
+6. 程序会自动计算下次复习时间，并实时更新统计。
 
 三、火花与续火花
 每天完成至少一张卡片，就算“续火花”。连续每天完成，火花天数会增加；中断一天，下次完成后从 1 开始。

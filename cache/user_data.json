@@ -1031,11 +1031,11 @@
       "chapter": "物质及其变化",
       "question": "物质分类中，树状分类法和交叉分类法有什么区别？",
       "answer": "树状分类法按同一标准逐级分类，层次清晰；交叉分类法用多个标准对同一物质分类，能更全面认识物质。",
-      "interval": 1,
-      "next_review": "2026-09-28",
-      "last_review": "2026-09-27",
-      "first_review": "2026-09-27",
-      "correct_count": 1,
+      "interval": 0,
+      "next_review": "2026-09-27",
+      "last_review": "",
+      "first_review": "",
+      "correct_count": 0,
       "wrong_count": 0
     },
     {
