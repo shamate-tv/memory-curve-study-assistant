@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+cache/
+*.zip
+*.ics
+.env
+.DS_Store
+build/
+dist/
+*.spec
+.venv-build/

@@ -10,7 +10,16 @@ import sys
 from pathlib import Path
 
 TASK_NAME = "MemoryCurve_Study_Reminder"
-PROJECT_DIR = Path(__file__).resolve().parent
+
+
+def _base_dir():
+    """打包成 exe 后，项目目录就是 exe 所在目录。"""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
+
+PROJECT_DIR = _base_dir()
 REMINDER_SCRIPT = PROJECT_DIR / "reminder.py"
 
 
@@ -41,6 +50,14 @@ def _pythonw_path():
     return str(executable)
 
 
+def _task_command():
+    """生成任务计划程序要执行的命令。"""
+    if getattr(sys, "frozen", False):
+        return f'"{sys.executable}" --remind'
+    pythonw = _pythonw_path()
+    return f'"{pythonw}" "{REMINDER_SCRIPT}"'
+
+
 def task_exists():
     """判断定时任务是否已经存在。"""
     if not sys.platform.startswith("win"):
@@ -54,8 +71,7 @@ def create_daily_task(time_text="19:00"):
     if not sys.platform.startswith("win"):
         return False, "当前系统不是 Windows，无法创建任务计划。"
 
-    pythonw = _pythonw_path()
-    task_command = f'"{pythonw}" "{REMINDER_SCRIPT}"'
+    task_command = _task_command()
     ok, output = _run([
         "schtasks",
         "/Create",

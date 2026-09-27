@@ -104,7 +104,7 @@ def _show_toast(title, message, app_id):
         return False
 
 
-def show_windows_toast(title, message, app_id="记忆曲线复习助手", force_compat=False):
+def show_windows_toast(title, message, app_id="主科每日复习助手", force_compat=False):
     """显示提醒。成功返回 True，失败返回 False。
 
     force_compat=True 时强制使用 Win7 兼容模式。

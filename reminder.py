@@ -8,9 +8,10 @@
 import sys
 from pathlib import Path
 
-PROJECT_DIR = Path(__file__).resolve().parent
-if str(PROJECT_DIR) not in sys.path:
-    sys.path.insert(0, str(PROJECT_DIR))
+if not getattr(sys, "frozen", False):
+    PROJECT_DIR = Path(__file__).resolve().parent
+    if str(PROJECT_DIR) not in sys.path:
+        sys.path.insert(0, str(PROJECT_DIR))
 
 import notifier  # noqa: E402
 import scheduler  # noqa: E402
@@ -52,7 +53,7 @@ def main():
 
     if bool(settings.get("use_windows_toast", True)):
         if notifier.show_windows_toast(
-            "记忆曲线 · 学习提醒",
+            "主科每日复习助手",
             message,
             force_compat=bool(settings.get("compat_mode", False)),
         ):

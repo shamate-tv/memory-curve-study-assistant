@@ -9,10 +9,18 @@
 """
 
 import json
+import sys
 from datetime import date
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
+def _base_dir():
+    """打包成 exe 后，把用户数据放在 exe 所在目录。"""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
+
+BASE_DIR = _base_dir()
 CACHE_DIR = BASE_DIR / "cache"
 DEFAULT_DATA_FILE = BASE_DIR / "data.json"
 USER_DATA_FILE = CACHE_DIR / "user_data.json"
@@ -86,16 +94,26 @@ def _read_json(path):
         return json.load(file)
 
 
+def _seed_file_candidates():
+    """按顺序寻找原始题库：先找 exe/项目目录，再找 PyInstaller 的临时解包目录。"""
+    yield DEFAULT_DATA_FILE
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        yield Path(meipass) / "data.json"
+
+
 def _load_seed_cards():
     """读取原始题库 data.json；如果没有或损坏，就使用 default_data.py。"""
-    if DEFAULT_DATA_FILE.exists():
+    for seed_file in _seed_file_candidates():
+        if not seed_file.exists():
+            continue
         try:
-            data = _read_json(DEFAULT_DATA_FILE)
+            data = _read_json(seed_file)
             raw_cards = data.get("cards", []) if isinstance(data, dict) else data
             if isinstance(raw_cards, list) and raw_cards:
                 return [_make_fresh_card(card, index) for index, card in enumerate(raw_cards, start=1)]
         except (OSError, json.JSONDecodeError, TypeError):
-            pass
+            continue
     return _default_cards()
 
 

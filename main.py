@@ -27,13 +27,15 @@ RATING_NAMES = {
     scheduler.RATING_KNOWN: "记住",
 }
 
+APP_VERSION = "v1.1.1"
+
 
 class ReviewApp(tk.Tk):
     """主窗口。"""
 
     def __init__(self):
         super().__init__()
-        self.title("记忆曲线 · 高中必修一/二知识点复习助手")
+        self.title("基于艾宾浩斯记忆曲线的主科每日复习助手")
         self.geometry("1120x780")
         self.minsize(1000, 680)
         self.configure(bg="#eef2f7")
@@ -105,7 +107,7 @@ class ReviewApp(tk.Tk):
 
         title = tk.Label(
             header,
-            text="记忆曲线 · 主科知识复习助手",
+            text="基于艾宾浩斯记忆曲线的主科每日复习助手",
             bg="#1e3a8a",
             fg="#ffffff",
             font=("Microsoft YaHei", 22, "bold"),
@@ -114,7 +116,7 @@ class ReviewApp(tk.Tk):
 
         subtitle = tk.Label(
             header,
-            text="高中必修一、二知识点 · 间隔重复算法 · 帮你安排每天的复习计划",
+            text=f"高中必修一、二知识点 · 间隔重复算法 · 帮你安排每天的复习计划 · {APP_VERSION}",
             bg="#1e3a8a",
             fg="#bfdbfe",
             font=("Microsoft YaHei", 11),
@@ -330,21 +332,6 @@ class ReviewApp(tk.Tk):
         )
         self.skip_btn.pack(side="left", padx=(10, 0))
 
-        self.refresh_due_btn = tk.Button(
-            button_row,
-            text="刷新队列",
-            command=self.refresh_due,
-            bg="#e2e8f0",
-            fg="#334155",
-            activebackground="#cbd5e1",
-            relief="flat",
-            font=("Microsoft YaHei", 10),
-            padx=14,
-            pady=8,
-            cursor="hand2",
-        )
-        self.refresh_due_btn.pack(side="left", padx=(10, 0))
-
         self.rating_frame = tk.Frame(wrap, bg="#ffffff")
         self.rating_frame.pack(fill="x", pady=(14, 0))
 
@@ -480,6 +467,8 @@ class ReviewApp(tk.Tk):
         self.update_daily_progress_label()
         self._refresh_spark()
         self.update_progress_bar()
+        self.refresh_stats()
+        self.refresh_tree()
 
     def skip_current(self):
         if not self.current_card or len(self.current_due) <= 1:
@@ -636,7 +625,6 @@ class ReviewApp(tk.Tk):
             ("编辑选中", self.edit_selected, "#0f766e", "#ffffff"),
             ("删除选中", self.delete_selected, "#dc2626", "#ffffff"),
             ("重置学习进度", self.reset_selected_progress, "#7c3aed", "#ffffff"),
-            ("保存数据", self.save_now, "#475569", "#ffffff"),
         ]
         for text, command, color, fg in button_defs:
             tk.Button(
@@ -1011,48 +999,18 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
 
         tk.Button(
             action_bar,
-            text="清理学习缓存",
-            command=self.clear_cache,
+            text="清除用户数据",
+            command=self.clear_user_data,
             bg="#dc2626",
             fg="#ffffff",
             activebackground="#b91c1c",
             activeforeground="#ffffff",
             relief="flat",
-            font=("Microsoft YaHei", 10),
-            padx=16,
+            font=("Microsoft YaHei", 10, "bold"),
+            padx=18,
             pady=7,
             cursor="hand2",
         ).pack(side="left")
-
-        tk.Button(
-            action_bar,
-            text="清除用户数据",
-            command=self.clear_user_data,
-            bg="#7c3aed",
-            fg="#ffffff",
-            activebackground="#6d28d9",
-            activeforeground="#ffffff",
-            relief="flat",
-            font=("Microsoft YaHei", 10),
-            padx=16,
-            pady=7,
-            cursor="hand2",
-        ).pack(side="left", padx=(10, 0))
-
-        tk.Button(
-            action_bar,
-            text="打开缓存文件夹",
-            command=self.open_cache_folder,
-            bg="#2563eb",
-            fg="#ffffff",
-            activebackground="#1d4ed8",
-            activeforeground="#ffffff",
-            relief="flat",
-            font=("Microsoft YaHei", 10),
-            padx=16,
-            pady=7,
-            cursor="hand2",
-        ).pack(side="left", padx=(10, 0))
 
         settings_canvas = tk.Canvas(
             outer,
@@ -1280,61 +1238,6 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
             cursor="hand2",
         ).pack(side="left")
 
-        notify_row = tk.Frame(wrap, bg="#ffffff")
-        notify_row.pack(fill="x", pady=(8, 0))
-
-        self.use_windows_toast_var = tk.BooleanVar(
-            value=bool(self.settings.get("use_windows_toast", True))
-        )
-        tk.Checkbutton(
-            notify_row,
-            text="使用 Windows 系统通知",
-            variable=self.use_windows_toast_var,
-            command=self.update_reminder_settings,
-            bg="#ffffff",
-            fg="#0f172a",
-            activebackground="#ffffff",
-            activeforeground="#0f172a",
-            selectcolor="#dbeafe",
-            font=("Microsoft YaHei", 10),
-            cursor="hand2",
-        ).pack(side="left")
-
-        tk.Button(
-            notify_row,
-            text="测试系统通知",
-            command=self.test_windows_toast,
-            bg="#0f766e",
-            fg="#ffffff",
-            activebackground="#115e59",
-            activeforeground="#ffffff",
-            relief="flat",
-            font=("Microsoft YaHei", 10),
-            padx=14,
-            pady=6,
-            cursor="hand2",
-        ).pack(side="left", padx=(12, 0))
-
-        compat_row = tk.Frame(wrap, bg="#ffffff")
-        compat_row.pack(fill="x", pady=(8, 0))
-
-        self.compat_mode_var = tk.BooleanVar(
-            value=bool(self.settings.get("compat_mode", False))
-        )
-        tk.Checkbutton(
-            compat_row,
-            text="Win7 兼容模式（系统消息框 + 提示音）",
-            variable=self.compat_mode_var,
-            command=self.update_reminder_settings,
-            bg="#ffffff",
-            fg="#0f172a",
-            activebackground="#ffffff",
-            activeforeground="#0f172a",
-            selectcolor="#dbeafe",
-            font=("Microsoft YaHei", 10),
-            cursor="hand2",
-        ).pack(side="left")
-
         task_row = tk.Frame(wrap, bg="#ffffff")
         task_row.pack(fill="x", pady=(8, 0))
 
@@ -1346,10 +1249,10 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
             font=("Microsoft YaHei", 10),
         ).pack(side="left")
 
-        tk.Button(
+        self.task_toggle_btn = tk.Button(
             task_row,
             text="创建定时提醒",
-            command=self.create_windows_task,
+            command=self.toggle_windows_task,
             bg="#2563eb",
             fg="#ffffff",
             activebackground="#1d4ed8",
@@ -1359,21 +1262,8 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
             padx=14,
             pady=6,
             cursor="hand2",
-        ).pack(side="left", padx=(8, 0))
-
-        tk.Button(
-            task_row,
-            text="删除定时提醒",
-            command=self.delete_windows_task,
-            bg="#e2e8f0",
-            fg="#334155",
-            activebackground="#cbd5e1",
-            relief="flat",
-            font=("Microsoft YaHei", 10),
-            padx=14,
-            pady=6,
-            cursor="hand2",
-        ).pack(side="left", padx=(8, 0))
+        )
+        self.task_toggle_btn.pack(side="left", padx=(8, 0))
 
         self.task_status_label = tk.Label(
             task_row,
@@ -1414,7 +1304,7 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
 
         tk.Label(
             wrap,
-            text="清理学习缓存：删除学习记录、今日进度和火花，保留设置。清除用户数据：删除全部用户数据，包括设置和导出的日历文件，程序恢复到第一次使用时的状态。",
+            text="清除用户数据会删除学习记录、火花、设置和导出的日历文件，程序恢复到第一次使用时的状态。",
             bg="#ffffff",
             fg="#64748b",
             font=("Microsoft YaHei", 10),
@@ -1451,7 +1341,7 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
         )
         text.pack(fill="both", expand=True)
 
-        content = """记忆曲线 · 高中必修一/二知识点复习助手
+        content = """基于艾宾浩斯记忆曲线的主科每日复习助手
 
 一、这个程序是做什么的？
 它把高中必修一、二的知识点做成一张张“问题—答案”卡片，并根据你的记忆情况自动安排下一次复习时间。
@@ -1466,7 +1356,7 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
 每天完成至少一张卡片，就算“续火花”。连续每天完成，火花天数会增加；中断一天，下次完成后从 1 开始。
 
 四、学习提醒
-在“设置”页可以开启启动提醒和每天定时提醒，也可以导出手机日历提醒文件。勾选“使用 Windows 系统通知”后，Windows 10/11 会通过通知中心弹出提醒；Windows 7 或通知失败时会自动使用系统消息框和提示音。勾选“Win7 兼容模式”可以强制使用兼容提醒。点击“测试系统通知”可以先检查电脑能否正常弹出通知。点击“创建定时提醒”后，即使程序关闭，Windows 任务计划程序也会在设定时间运行提醒脚本；点击“删除定时提醒”可以取消。
+在“设置”页可以开启启动提醒和每天定时提醒，也可以导出手机日历提醒文件。Windows 10/11 会自动使用系统通知，Windows 7 会自动使用兼容提醒。点击“创建定时提醒”后，即使程序关闭，Windows 任务计划程序也会在设定时间运行提醒脚本；按钮变成“删除定时提醒”后，再点一次即可取消。
 
 五、每日学习量
 在“设置”页可以调整每日新卡上限和每日复习上限。程序会优先安排已经到期的复习卡，再安排新卡。
@@ -1476,7 +1366,7 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
 - cache/user_data.json：你的学习记录；
 - cache/daily_stats.json：今日完成量；
 - cache/spark.json：火花数据；
-- 清理缓存不会删除设置和提醒时间；
+- 程序会自动在 cache 文件夹保存学习记录、火花和设置；
 - 清除用户数据会删除学习记录、火花、设置和提醒文件，恢复到第一次使用时的状态。
 
 七、算法依据
@@ -1745,7 +1635,7 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
         if hasattr(self, "compat_mode_var"):
             force_compat = bool(self.compat_mode_var.get())
         if use_toast and notifier.show_windows_toast(
-            "记忆曲线 · 学习提醒",
+            "主科每日复习助手",
             message.replace(chr(10), " "),
             force_compat=force_compat,
         ):
@@ -1757,7 +1647,7 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
         force_compat = bool(self.settings.get("compat_mode", False))
         if hasattr(self, "compat_mode_var"):
             force_compat = bool(self.compat_mode_var.get())
-        if notifier.show_windows_toast("记忆曲线复习助手", message, force_compat=force_compat):
+        if notifier.show_windows_toast("主科每日复习助手", message, force_compat=force_compat):
             messagebox.showinfo("测试成功", "已发送测试提醒，请查看 Windows 通知或系统消息框。")
         else:
             messagebox.showwarning("测试失败", "未能拉起系统提醒，将使用程序内弹窗。")
@@ -1765,11 +1655,25 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
 
     def refresh_task_status(self):
         try:
-            text = task_scheduler.task_status_text()
+            exists = task_scheduler.task_exists()
+            text = "已创建" if exists else "未创建"
         except Exception:
+            exists = False
             text = "检测失败"
         if hasattr(self, "task_status_label"):
             self.task_status_label.configure(text=text)
+        if hasattr(self, "task_toggle_btn"):
+            self.task_toggle_btn.configure(text="删除定时提醒" if exists else "创建定时提醒")
+
+    def toggle_windows_task(self):
+        try:
+            exists = task_scheduler.task_exists()
+        except Exception:
+            exists = False
+        if exists:
+            self.delete_windows_task()
+        else:
+            self.create_windows_task()
 
     def create_windows_task(self):
         ok, message = task_scheduler.create_daily_task(self.reminder_time_var.get())
@@ -1987,5 +1891,8 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
 
 
 if __name__ == "__main__":
+    if "--remind" in sys.argv:
+        import reminder
+        sys.exit(reminder.main())
     app = ReviewApp()
     app.mainloop()
