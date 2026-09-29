@@ -27,7 +27,7 @@ RATING_NAMES = {
     scheduler.RATING_KNOWN: "记住",
 }
 
-APP_VERSION = "v1.1.2"
+APP_VERSION = "v1.1.3"
 
 
 class ReviewApp(tk.Tk):
@@ -60,7 +60,7 @@ class ReviewApp(tk.Tk):
         self.refresh_all()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
-        self.after(500, self.show_startup_reminder)
+        self.after(500, self.startup_intro_or_reminder)
         self.after(1000, self._check_reminder_loop)
 
     def _build_style(self):
@@ -168,19 +168,16 @@ class ReviewApp(tk.Tk):
         self.stats_tab = tk.Frame(self.notebook, bg="#ffffff")
         self.help_tab = tk.Frame(self.notebook, bg="#ffffff")
         self.settings_tab = tk.Frame(self.notebook, bg="#ffffff")
-        self.basis_tab = tk.Frame(self.notebook, bg="#ffffff")
 
         self.notebook.add(self.review_tab, text="今日复习")
         self.notebook.add(self.manage_tab, text="卡片管理")
         self.notebook.add(self.stats_tab, text="学习统计")
-        self.notebook.add(self.basis_tab, text="算法依据")
         self.notebook.add(self.settings_tab, text="设置")
         self.notebook.add(self.help_tab, text="使用说明")
 
         self._build_review_tab()
         self._build_manage_tab()
         self._build_stats_tab()
-        self._build_basis_tab()
         self._build_settings_tab()
         self._build_help_tab()
 
@@ -1448,8 +1445,8 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
 - 程序会自动在 cache 文件夹保存学习记录、火花和设置；
 - 清除用户数据会删除学习记录、火花、设置和提醒文件，恢复到第一次使用时的状态。
 
-七、算法依据
-可以在“算法依据”标签页查看艾宾浩斯遗忘曲线、间隔效应、提取练习、Leitner 系统和 SM-2 的简要说明。
+七、艾宾浩斯记忆法
+本软件基于艾宾浩斯遗忘曲线和间隔重复算法安排复习。第一次启动时会有详细介绍。
 
 八、运行环境
 - Windows 7 及以上系统；
@@ -1769,6 +1766,119 @@ SuperMemo 的 SM-2 算法是许多记忆软件的基础，它根据回忆质量�
         else:
             messagebox.showerror("删除失败", message)
         self.refresh_task_status()
+
+    def startup_intro_or_reminder(self):
+        """第一次打开先介绍艾宾浩斯记忆法，然后再检查学习提醒。"""
+        try:
+            if not bool(self.settings.get("intro_shown", False)):
+                self.show_first_run_intro()
+            self.show_startup_reminder()
+        except tk.TclError:
+            pass
+
+    def show_first_run_intro(self):
+        """第一次运行时显示的艾宾浩斯记忆法介绍窗口。"""
+        dialog = tk.Toplevel(self)
+        dialog.title("欢迎使用 · 艾宾浩斯记忆法")
+        dialog.geometry("780x620")
+        dialog.configure(bg="#ffffff")
+        dialog.transient(self)
+        dialog.grab_set()
+        dialog.lift()
+        dialog.focus_force()
+
+        header = tk.Label(
+            dialog,
+            text="欢迎使用基于艾宾浩斯记忆曲线的主科每日复习助手",
+            bg="#1e3a8a",
+            fg="#ffffff",
+            font=("Microsoft YaHei", 15, "bold"),
+            padx=18,
+            pady=14,
+        )
+        header.pack(fill="x")
+
+        def finish_intro():
+            self.settings["intro_shown"] = True
+            storage.save_settings(self.settings)
+            dialog.destroy()
+
+        button_row = tk.Frame(dialog, bg="#ffffff")
+        button_row.pack(side="bottom", fill="x", padx=18, pady=(0, 16))
+
+        tk.Button(
+            button_row,
+            text="关闭弹窗",
+            command=finish_intro,
+            bg="#2563eb",
+            fg="#ffffff",
+            activebackground="#1d4ed8",
+            activeforeground="#ffffff",
+            relief="flat",
+            font=("Microsoft YaHei", 12, "bold"),
+            padx=28,
+            pady=10,
+            cursor="hand2",
+        ).pack(side="right")
+
+        dialog.protocol("WM_DELETE_WINDOW", finish_intro)
+
+        text_frame = tk.Frame(dialog, bg="#ffffff")
+        text_frame.pack(fill="both", expand=True, padx=18, pady=14)
+
+        intro_text = tk.Text(
+            text_frame,
+            wrap="word",
+            bg="#ffffff",
+            fg="#334155",
+            font=("Microsoft YaHei", 11),
+            bd=0,
+            padx=8,
+            pady=8,
+        )
+        scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=intro_text.yview)
+        intro_text.configure(yscrollcommand=scrollbar.set, state="normal")
+        scrollbar.pack(side="right", fill="y")
+        intro_text.pack(side="left", fill="both", expand=True)
+
+        content = """欢迎使用！
+
+一、什么是艾宾浩斯记忆法？
+德国心理学家艾宾浩斯发现：新学的内容遗忘速度先快后慢。
+刚学完时忘得最快，之后逐渐变慢。所以在快要忘记的时候复习，效果最好。
+
+二、软件怎么帮你复习？
+- 先显示问题，让你主动回忆；
+- 再显示答案，检查是否记住；
+- 根据“忘记 / 模糊 / 记住”自动安排下次复习：
+  忘记：1 天后再复习
+  模糊：间隔变为上一次的 1.6 倍
+  记住：间隔变为上一次的 2.2 倍
+- 最长间隔 180 天，间隔达到 30 天算已掌握。
+
+三、每天学多少？
+- 默认每天新卡 20 张；
+- 默认每天复习上限 100 张；
+- 可以在“设置”页调整；
+- 到期复习卡会优先安排。
+
+四、火花与续火花
+每天完成至少一张卡片，就算“续火花”。
+连续完成，火花天数会增加；中断一天，下次完成后从 1 开始。
+
+五、开始使用
+建议先从自己的薄弱科目开始。
+点击下方“关闭弹窗”，即可进入软件。
+"""
+        intro_text.insert("1.0", content)
+        intro_text.configure(state="disabled")
+
+        dialog.update_idletasks()
+        x = self.winfo_rootx() + (self.winfo_width() - dialog.winfo_width()) // 2
+        y = self.winfo_rooty() + (self.winfo_height() - dialog.winfo_height()) // 2
+        dialog.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+
+        self.wait_window(dialog)
 
     def show_startup_reminder(self):
         try:

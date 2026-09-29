@@ -37,6 +37,7 @@ DEFAULT_SETTINGS = {
     "reminder_time": "19:00",
     "use_windows_toast": True,
     "compat_mode": False,
+    "intro_shown": False,
 }
 
 

@@ -6,5 +6,6 @@
   "reminder_daily": true,
   "reminder_time": "19:00",
   "use_windows_toast": true,
-  "compat_mode": false
+  "compat_mode": false,
+  "intro_shown": false
 }
